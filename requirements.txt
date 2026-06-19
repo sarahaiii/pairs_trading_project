@@ -1,0 +1,12 @@
+# Data and analysis
+pandas
+numpy
+yfinance
+statsmodels
+
+# Visualization
+matplotlib
+seaborn
+
+# Notebooks
+jupyter
