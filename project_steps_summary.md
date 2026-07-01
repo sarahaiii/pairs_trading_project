@@ -628,3 +628,193 @@ This is the first version of the trading signal logic. Later, we will improve it
 ## 28. Next Step
 
 The next step is to count how many long and short signals were created, then improve the position logic so trades do not open and close too abruptly.
+
+## 29. Counted the Basic Trading Signals
+
+Counted how many basic signal days were created:
+
+```python
+signals["position"].value_counts()
+```
+
+The result was:
+
+```text
+No trade:       1671 days
+Long spread:      45 days
+Short spread:     44 days
+```
+
+Result explanation:
+
+Most days had no trade because the strategy only creates a signal when the z-score is above `2` or below `-2`.
+
+This is reasonable because extreme spread movements should be relatively rare.
+
+## 30. Created Held Positions
+
+Improved the position logic so trades stay open until the spread moves closer to normal:
+
+```python
+signals["position_held"] = signals["position"].replace(0, np.nan).ffill()
+signals.loc[signals["z_score"].abs() < 0.5, "position_held"] = 0
+signals["position_held"] = signals["position_held"].ffill().fillna(0)
+
+signals[["z_score", "position", "position_held"]].head(20)
+```
+
+An earlier version using `replace(..., method="ffill")` caused an error because the current pandas version does not accept the `method` argument in that form.
+
+The corrected version replaced `0` values with missing values first, then used `.ffill()`.
+
+Result explanation:
+
+This step made the trading logic more realistic. Instead of entering a trade for only one extreme day, the strategy now holds the position until the z-score gets close to normal.
+
+## 31. Counted the Held Positions
+
+Counted how many days the strategy was actually holding each type of position:
+
+```python
+signals["position_held"].value_counts()
+```
+
+The result was:
+
+```text
+No position:       882 days
+Short spread:      543 days
+Long spread:       335 days
+```
+
+Result explanation:
+
+The held-position counts are larger than the raw signal counts because trades stay open across multiple days.
+
+The strategy spent 882 days out of the market, 543 days short the spread, and 335 days long the spread.
+
+## 32. Plotted the Held Trading Positions
+
+Plotted the held positions over time:
+
+```python
+signals["position_held"].plot(figsize=(12, 4))
+
+plt.title("MCD/YUM Held Trading Positions")
+plt.xlabel("Date")
+plt.ylabel("Position")
+plt.yticks([-1, 0, 1], ["Short Spread", "No Position", "Long Spread"])
+plt.show()
+```
+
+Result explanation:
+
+The chart showed when the strategy was out of the market, long the spread, or short the spread.
+
+This helped visually confirm that the strategy switched positions based on the z-score rules.
+
+## 33. Calculated Daily Spread Returns
+
+Calculated the daily change in the spread:
+
+```python
+spread_returns = spread.diff()
+
+spread_returns.head()
+```
+
+The first few values were:
+
+```text
+2018-01-02         NaN
+2018-01-03   -0.464594
+2018-01-04   -0.587703
+2018-01-05   -0.626248
+2018-01-08   -0.364490
+```
+
+Result explanation:
+
+The first value was `NaN` because there was no previous day to compare against.
+
+The spread return measures how much the spread changed each day. This becomes the raw profit/loss input for the backtest.
+
+## 34. Calculated Strategy Daily Returns
+
+Calculated the strategy's daily profit/loss:
+
+```python
+strategy_returns = signals["position_held"].shift(1) * spread_returns
+
+strategy_returns = strategy_returns.dropna()
+
+strategy_returns.head()
+```
+
+Result explanation:
+
+The strategy uses yesterday's held position to calculate today's profit/loss. This is done with `.shift(1)`.
+
+This prevents look-ahead bias, which means the backtest is not allowed to use information from the same day before it would have been known.
+
+The first few strategy returns were `0` because the strategy had no open position at the beginning of the dataset.
+
+## 35. Plotted Cumulative Strategy P&L
+
+Created a cumulative profit/loss curve:
+
+```python
+cumulative_returns = strategy_returns.cumsum()
+
+cumulative_returns.plot(figsize=(12, 6))
+
+plt.title("MCD/YUM Strategy Cumulative P&L")
+plt.xlabel("Date")
+plt.ylabel("Cumulative P&L")
+plt.show()
+```
+
+Result explanation:
+
+The cumulative P&L chart increased strongly over the test period. This is a promising first backtest result.
+
+However, this is still a simplified backtest. It does not yet include transaction costs, capital normalization, position sizing, or out-of-sample validation.
+
+## 36. Calculated Basic Performance Statistics
+
+Calculated basic performance metrics:
+
+```python
+total_pnl = cumulative_returns.iloc[-1]
+average_daily_pnl = strategy_returns.mean()
+daily_pnl_std = strategy_returns.std()
+sharpe_ratio = average_daily_pnl / daily_pnl_std * np.sqrt(252)
+
+print("Total P&L:", total_pnl)
+print("Average Daily P&L:", average_daily_pnl)
+print("Daily P&L Std Dev:", daily_pnl_std)
+print("Sharpe Ratio:", sharpe_ratio)
+```
+
+The results were:
+
+```text
+Total P&L: 283.08105668356774
+Average Daily P&L: 0.16093294865467186
+Daily P&L Std Dev: 1.8892240428410045
+Sharpe Ratio: 1.3522648989464163
+```
+
+Result explanation:
+
+The total P&L was positive, which means the simplified strategy made money in spread units over the full period.
+
+The Sharpe ratio was about `1.35`, which is a decent first result for a rough backtest.
+
+Important caution:
+
+These results are not final because the backtest is still simplified. The next improvements should include transaction costs, better position sizing, and out-of-sample testing.
+
+## 37. Next Step
+
+The next step is to calculate drawdown. Drawdown shows how much the strategy falls from its previous peak, which helps measure risk.
