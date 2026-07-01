@@ -818,3 +818,146 @@ These results are not final because the backtest is still simplified. The next i
 ## 37. Next Step
 
 The next step is to calculate drawdown. Drawdown shows how much the strategy falls from its previous peak, which helps measure risk.
+
+## 38. Calculated Max Drawdown
+
+Calculated the strategy drawdown:
+
+```python
+running_max = cumulative_returns.cummax()
+drawdown = cumulative_returns - running_max
+
+max_drawdown = drawdown.min()
+
+print("Max Drawdown:", max_drawdown)
+```
+
+The result was:
+
+```text
+Max Drawdown: -27.380414608528326
+```
+
+Result explanation:
+
+Max drawdown measures the worst drop from a previous high point in the strategy's cumulative P&L.
+
+In this case, the strategy's worst peak-to-trough decline was about `27.38` spread P&L units.
+
+This matters because a strategy can be profitable overall but still experience painful losing periods along the way.
+
+## 39. Plotted the Drawdown
+
+Plotted the drawdown over time:
+
+```python
+drawdown.plot(figsize=(12, 4))
+
+plt.title("MCD/YUM Strategy Drawdown")
+plt.xlabel("Date")
+plt.ylabel("Drawdown")
+plt.show()
+```
+
+Result explanation:
+
+The drawdown chart showed several periods where the strategy fell below its previous high.
+
+The deepest drawdown matched the max drawdown result of about `-27.38`.
+
+This helped show when the strategy experienced its worst losing stretch.
+
+## 40. Added Transaction Costs
+
+Added a simple transaction cost whenever the position changed:
+
+```python
+transaction_cost = 0.05
+
+position_changes = signals["position_held"].diff().abs()
+
+costs = position_changes * transaction_cost
+
+strategy_returns_after_costs = strategy_returns - costs.loc[strategy_returns.index]
+
+cumulative_returns_after_costs = strategy_returns_after_costs.cumsum()
+
+cumulative_returns_after_costs.plot(figsize=(12, 6))
+
+plt.title("MCD/YUM Strategy Cumulative P&L After Transaction Costs")
+plt.xlabel("Date")
+plt.ylabel("Cumulative P&L")
+plt.show()
+```
+
+Result explanation:
+
+Transaction costs make the backtest more realistic because real trading is not free.
+
+The strategy still produced a positive cumulative P&L after costs, which is encouraging.
+
+## 41. Calculated Performance After Transaction Costs
+
+Calculated performance statistics after subtracting transaction costs:
+
+```python
+total_pnl_after_costs = cumulative_returns_after_costs.iloc[-1]
+average_daily_pnl_after_costs = strategy_returns_after_costs.mean()
+daily_pnl_std_after_costs = strategy_returns_after_costs.std()
+sharpe_ratio_after_costs = average_daily_pnl_after_costs / daily_pnl_std_after_costs * np.sqrt(252)
+
+print("Total P&L After Costs:", total_pnl_after_costs)
+print("Average Daily P&L After Costs:", average_daily_pnl_after_costs)
+print("Daily P&L Std Dev After Costs:", daily_pnl_std_after_costs)
+print("Sharpe Ratio After Costs:", sharpe_ratio_after_costs)
+```
+
+The results were:
+
+```text
+Total P&L After Costs: 276.8310566835672
+Average Daily P&L After Costs: 0.1573797934528526
+Daily P&L Std Dev After Costs: 1.8881412819780128
+Sharpe Ratio After Costs: 1.3231672825671783
+```
+
+Result explanation:
+
+Before transaction costs, the strategy had:
+
+```text
+Total P&L: 283.08105668356774
+Sharpe Ratio: 1.3522648989464163
+```
+
+After transaction costs, the strategy had:
+
+```text
+Total P&L After Costs: 276.8310566835672
+Sharpe Ratio After Costs: 1.3231672825671783
+```
+
+The strategy still performed positively after costs, but both total P&L and Sharpe ratio dropped slightly.
+
+This is expected because transaction costs reduce trading profits.
+
+## 42. Current Status
+
+The strategy has now completed a first simplified backtest with transaction costs.
+
+Main current results:
+
+```text
+Selected pair: MCD / YUM
+Cointegration p-value: 0.033396
+Hedge ratio: 2.2219990094114594
+Total P&L before costs: 283.08105668356774
+Sharpe ratio before costs: 1.3522648989464163
+Max drawdown: -27.380414608528326
+Total P&L after costs: 276.8310566835672
+Sharpe ratio after costs: 1.3231672825671783
+```
+
+Interpretation:
+
+The first backtest is promising, but it is not final. The next major improvement should be out-of-sample validation so we can test whether the strategy works on data that was not used to select the pair and build the parameters.
