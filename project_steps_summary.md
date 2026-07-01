@@ -487,3 +487,144 @@ spread = prices["MCD"] - hedge_ratio * prices["YUM"]
 ```
 
 After that, we will calculate the spread's z-score. The z-score will help identify when the spread is unusually high or unusually low, which is what creates possible pairs trading signals.
+
+## 23. Built the MCD/YUM Spread
+
+Created the spread using the hedge ratio:
+
+```python
+spread = prices["MCD"] - hedge_ratio * prices["YUM"]
+
+spread.head()
+```
+
+The first few spread values were negative, for example:
+
+```text
+2018-01-02   -13.360123
+2018-01-03   -13.824718
+2018-01-04   -14.412421
+2018-01-05   -15.038669
+2018-01-08   -15.403159
+```
+
+Result explanation:
+
+The spread is the relationship we are actually trading. The negative values are not a problem. What matters is not whether the spread is positive or negative, but whether it moves away from its normal level and then returns.
+
+## 24. Plotted the MCD/YUM Spread
+
+Plotted the spread:
+
+```python
+spread.plot(figsize=(12, 6))
+
+plt.title("MCD/YUM Spread")
+plt.xlabel("Date")
+plt.ylabel("Spread")
+plt.show()
+```
+
+Result explanation:
+
+The spread moved up and down over time instead of trending smoothly in only one direction. It showed large deviations followed by returns toward a more normal range.
+
+This is useful because pairs trading depends on mean reversion. Mean reversion means the relationship temporarily moves away from normal and then comes back.
+
+## 25. Calculated the Spread Z-Score
+
+Calculated the z-score of the spread:
+
+```python
+spread_mean = spread.mean()
+spread_std = spread.std()
+
+z_score = (spread - spread_mean) / spread_std
+
+z_score.head()
+```
+
+The first few z-score values were:
+
+```text
+2018-01-02    0.572676
+2018-01-03    0.539532
+2018-01-04    0.497606
+2018-01-05    0.452931
+2018-01-08    0.426928
+```
+
+Result explanation:
+
+The z-score tells us how far the spread is from its average level.
+
+- `0` means the spread is close to normal.
+- `2` means the spread is unusually high.
+- `-2` means the spread is unusually low.
+
+The first few values were close to `0`, so there was no extreme trading signal at the beginning of the dataset.
+
+## 26. Plotted the Z-Score with Trading Thresholds
+
+Plotted the z-score and added threshold lines:
+
+```python
+z_score.plot(figsize=(12, 6))
+
+plt.axhline(0, color="black", linestyle="--")
+plt.axhline(2, color="red", linestyle="--")
+plt.axhline(-2, color="green", linestyle="--")
+
+plt.title("MCD/YUM Spread Z-Score")
+plt.xlabel("Date")
+plt.ylabel("Z-Score")
+plt.show()
+```
+
+Result explanation:
+
+The chart showed the spread crossing above `+2` several times and below `-2` a few times. These are the areas where the spread was unusually far from normal.
+
+This is important because those threshold crossings can become trading signals.
+
+## 27. Created Basic Trading Signals
+
+Created a basic signal table:
+
+```python
+signals = pd.DataFrame(index=z_score.index)
+signals["z_score"] = z_score
+signals["position"] = 0
+
+signals.loc[signals["z_score"] > 2, "position"] = -1
+signals.loc[signals["z_score"] < -2, "position"] = 1
+
+signals.head()
+```
+
+The first few rows showed:
+
+```text
+              z_score    position
+2018-01-02    0.572676   0
+2018-01-03    0.539532   0
+2018-01-04    0.497606   0
+2018-01-05    0.452931   0
+2018-01-08    0.426928   0
+```
+
+Result explanation:
+
+The position column uses:
+
+- `1` for long the spread
+- `-1` for short the spread
+- `0` for no trade
+
+The first few rows were all `0` because the z-score was not above `2` or below `-2`.
+
+This is the first version of the trading signal logic. Later, we will improve it so positions stay open until the spread returns closer to normal.
+
+## 28. Next Step
+
+The next step is to count how many long and short signals were created, then improve the position logic so trades do not open and close too abruptly.
