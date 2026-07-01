@@ -303,3 +303,68 @@ Then we will rerun:
 5. all-pairs cointegration test
 
 The goal is to find a pair with a cointegration p-value below `0.05`.
+
+## 18. Expanded the Ticker List and Found a Candidate Pair
+
+Expanded the ticker list to include more related companies across restaurants, retail, energy, and banking.
+
+After rerunning the all-pairs cointegration test, the best candidate pair was:
+
+```text
+MCD and YUM
+```
+
+The p-value was:
+
+```text
+0.033396
+```
+
+Since this is below `0.05`, MCD and YUM are a stronger candidate pair for the pairs trading strategy.
+
+## 19. Plotted MCD and YUM Normalized Prices
+
+Plotted MCD and YUM on a normalized scale so both stocks started at 100.
+
+This made it easier to compare how the two stocks moved over time.
+
+The normalized chart showed that MCD and YUM moved together fairly closely, especially after 2020.
+
+## 20. Estimated the Hedge Ratio
+
+Ran a regression of MCD prices on YUM prices:
+
+```python
+X = sm.add_constant(prices["YUM"])
+y = prices["MCD"]
+
+model = sm.OLS(y, X).fit()
+
+hedge_ratio = model.params["YUM"]
+
+print("Hedge ratio:", hedge_ratio)
+```
+
+The hedge ratio was:
+
+```text
+2.2219990094114594
+```
+
+The hedge ratio tells us how much of one stock is used to offset the other stock when building the spread.
+
+In this project, the regression estimates the relationship:
+
+```text
+MCD ≈ constant + 2.222 × YUM
+```
+
+That means changes in YUM are scaled by about `2.222` when comparing it to MCD.
+
+The hedge ratio will be used next to create the spread:
+
+```text
+spread = MCD - hedge_ratio × YUM
+```
+
+The spread is important because pairs trading looks for moments when this relationship temporarily moves away from normal and then returns toward normal.
