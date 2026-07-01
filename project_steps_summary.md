@@ -1,6 +1,6 @@
 # Pairs Trading Project: Step-by-Step Summary
 
-This file records the steps completed so far in the pairs trading project.
+This file records the steps completed so far in the pairs trading project. It is meant to be a future reference guide, so each step includes what was done, why it was done, the result, and what the result means.
 
 ## 1. Created the Project Folder
 
@@ -117,7 +117,9 @@ The result showed:
 - 6 stock columns
 - no missing values
 
-This confirmed the downloaded data was clean enough to continue.
+Result explanation:
+
+All 6 stocks had the same number of observations, which means the price table was aligned correctly. There were no missing values, so we did not need to clean or drop any stock columns before continuing.
 
 ## 9. Plotted Historical Prices
 
@@ -132,7 +134,9 @@ plt.ylabel("Price")
 plt.show()
 ```
 
-This helped us see how the stocks moved over time.
+Result explanation:
+
+The chart showed the stocks moving over time, but the raw prices were not always easy to compare because different stocks trade at different dollar levels. For example, one stock can trade near $50 while another trades near $150. This is why we later normalized prices.
 
 ## 10. Calculated Daily Returns
 
@@ -143,6 +147,10 @@ returns = prices.pct_change().dropna()
 
 returns.head()
 ```
+
+Result explanation:
+
+The output showed daily percentage returns for each stock. For example, a value like `0.014` means the stock increased by about `1.4%` that day.
 
 Returns are useful because they put stocks on a more comparable scale than raw prices.
 
@@ -168,7 +176,15 @@ Their correlation was about:
 0.737
 ```
 
+Result explanation:
+
+KO and PEP had the strongest return correlation in the first group. A correlation of about `0.737` means their daily returns often moved in the same direction.
+
 This suggested KO and PEP were worth investigating first.
+
+Important note:
+
+Correlation is not the same as cointegration. Correlation checks whether two stocks move together day to day. Cointegration checks whether their long-term price relationship is stable.
 
 ## 12. Plotted KO and PEP Prices
 
@@ -183,7 +199,9 @@ plt.ylabel("Price")
 plt.show()
 ```
 
-This showed both stocks moving upward over time, but their raw prices were on different scales.
+Result explanation:
+
+This showed both stocks moving upward over time, but their raw prices were on different scales. PEP traded at a much higher price level than KO, so the chart was not ideal for comparing percentage movement.
 
 ## 13. Normalized KO and PEP Prices
 
@@ -200,7 +218,11 @@ plt.ylabel("Normalized Price")
 plt.show()
 ```
 
-This made it easier to compare their percentage movement over time.
+Result explanation:
+
+After normalization, both KO and PEP started at `100`. This made it easier to compare their relative performance over time.
+
+The chart showed that KO and PEP moved somewhat similarly, but visual similarity alone was not enough. We still needed a cointegration test.
 
 ## 14. Ran a Cointegration Test on KO and PEP
 
@@ -218,7 +240,16 @@ The p-value was about:
 0.508
 ```
 
-Since this is higher than `0.05`, KO and PEP were not strongly cointegrated during this time period.
+Testing rule:
+
+- If the p-value is below `0.05`, the pair may be cointegrated.
+- If the p-value is above `0.05`, the pair is not strongly cointegrated.
+
+Result explanation:
+
+The KO/PEP p-value was about `0.508`, which is much higher than `0.05`.
+
+This means KO and PEP were not strongly cointegrated during this time period, even though they had the highest return correlation in the small starter group.
 
 Important lesson:
 
@@ -249,15 +280,26 @@ pair_results = pd.DataFrame(pair_results).sort_values("P-Value")
 pair_results
 ```
 
-The best p-value was around:
+This tested every possible pair from the 6-stock starter group. With 6 stocks, there are 15 possible pairs.
+
+The best results from the first pair test were:
 
 ```text
-0.21
+KO / MCD      p-value ≈ 0.209986
+SBUX / TGT    p-value ≈ 0.279586
+MCD / PEP     p-value ≈ 0.316161
+KO / PEP      p-value ≈ 0.508195
 ```
+
+Result explanation:
+
+The best p-value was about `0.21`, which is still higher than `0.05`.
 
 That means none of the pairs in the small starter group were strongly cointegrated.
 
-## 16. Current Conclusion
+This was still a useful result because it showed the testing process worked. The data simply told us that the first small group did not contain a strong candidate pair.
+
+## 16. Conclusion from the First Testing Round
 
 The project is on the right track.
 
@@ -281,7 +323,9 @@ This is not a problem. It means the research process is working.
 
 ## 17. Next Planned Step
 
-The next step is to expand the ticker list to include more related stocks, such as:
+The next step was to expand the ticker list to include more related stocks. The reason for expanding the list was that the first 6-stock group did not produce a cointegrated pair.
+
+The expanded list included restaurants, retail companies, energy companies, and banks:
 
 ```python
 tickers = [
@@ -308,6 +352,21 @@ The goal is to find a pair with a cointegration p-value below `0.05`.
 
 Expanded the ticker list to include more related companies across restaurants, retail, energy, and banking.
 
+Then reran the same testing process:
+
+1. Downloaded prices for the expanded ticker list.
+2. Checked the data.
+3. Calculated returns.
+4. Tested every possible pair for cointegration.
+
+With 16 stocks, the all-pairs test produced:
+
+```text
+120 rows x 3 columns
+```
+
+This means 120 different stock pairs were tested.
+
 After rerunning the all-pairs cointegration test, the best candidate pair was:
 
 ```text
@@ -320,7 +379,22 @@ The p-value was:
 0.033396
 ```
 
-Since this is below `0.05`, MCD and YUM are a stronger candidate pair for the pairs trading strategy.
+Other near-candidates included:
+
+```text
+KO / LOW      p-value ≈ 0.064171
+CMG / HD      p-value ≈ 0.064830
+JPM / WMT     p-value ≈ 0.072478
+LOW / YUM     p-value ≈ 0.092595
+```
+
+Result explanation:
+
+MCD/YUM had a p-value of about `0.033396`, which is below `0.05`.
+
+This means MCD and YUM are a stronger candidate pair for the pairs trading strategy.
+
+The near-candidates were interesting, but their p-values were above `0.05`, so they were not selected at this stage.
 
 ## 19. Plotted MCD and YUM Normalized Prices
 
@@ -329,6 +403,10 @@ Plotted MCD and YUM on a normalized scale so both stocks started at 100.
 This made it easier to compare how the two stocks moved over time.
 
 The normalized chart showed that MCD and YUM moved together fairly closely, especially after 2020.
+
+Result explanation:
+
+This visual check supported the cointegration test result. The lines were not identical, but they showed a reasonably similar long-term movement pattern. That made MCD/YUM a reasonable pair to continue with.
 
 ## 20. Estimated the Hedge Ratio
 
@@ -368,3 +446,44 @@ spread = MCD - hedge_ratio × YUM
 ```
 
 The spread is important because pairs trading looks for moments when this relationship temporarily moves away from normal and then returns toward normal.
+
+Result explanation:
+
+The hedge ratio was about `2.222`.
+
+This means the strategy will compare MCD against approximately `2.222` units of YUM when building the spread.
+
+This does not mean we are literally buying 2.222 shares in every case yet. At this stage, it is a statistical relationship used to create the spread. Later, it can be translated into a trading position.
+
+## 21. Current Status After Testing
+
+The project has now completed the first major research phase:
+
+1. A small starter group was tested.
+2. No cointegrated pair was found in that small group.
+3. The stock list was expanded.
+4. All possible pairs in the expanded list were tested.
+5. MCD/YUM was selected as the first strong candidate pair.
+6. A hedge ratio was estimated for MCD/YUM.
+
+Main result so far:
+
+```text
+Selected pair: MCD / YUM
+Cointegration p-value: 0.033396
+Hedge ratio: 2.2219990094114594
+```
+
+Interpretation:
+
+MCD and YUM passed the cointegration screen because their p-value was below `0.05`. This suggests their prices may have a stable long-term relationship. The hedge ratio gives us the scaling needed to build the spread between the two stocks.
+
+## 22. Next Step
+
+The next step is to build and plot the spread:
+
+```python
+spread = prices["MCD"] - hedge_ratio * prices["YUM"]
+```
+
+After that, we will calculate the spread's z-score. The z-score will help identify when the spread is unusually high or unusually low, which is what creates possible pairs trading signals.
